@@ -71,9 +71,9 @@ CREATE DATABASE alok_library;
 
 3. Configure environment variables:
 
-Copy `.env.example` to `.env` and update with your database credentials:
+Copy `env.example` to `.env` and update with your database credentials:
 ```bash
-cp .env.example .env
+cp env.example .env
 ```
 
 Edit `.env` file:
@@ -83,7 +83,14 @@ DB_PORT=5432
 DB_NAME=alok_library
 DB_USER=postgres
 DB_PASSWORD=your_password_here
+# Or use a single connection string (enable DB_SSL=true for managed databases)
+# DATABASE_URL=postgres://user:password@host:5432/alok_library
+# DB_SSL=true
 PORT=3000
+FRONTEND_ORIGIN=http://localhost:5173
+SERVE_FRONTEND=false
+JWT_SECRET=replace-me
+JWT_EXPIRES_IN=24h
 ```
 
 ### Running the Server

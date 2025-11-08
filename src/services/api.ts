@@ -1,6 +1,11 @@
 import { Student } from '../types/Student';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const rawApiBase = (import.meta.env?.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api';
+const API_BASE_URL = rawApiBase.replace(/\/+$/, '');
+const buildApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+};
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -13,7 +18,7 @@ const getAuthHeaders = () => {
 export const studentApi = {
   // Get all students
   getAll: async (): Promise<Student[]> => {
-    const response = await fetch(`${API_BASE_URL}/students`, {
+    const response = await fetch(buildApiUrl('/students'), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -24,7 +29,7 @@ export const studentApi = {
 
   // Get student by ID
   getById: async (id: string): Promise<Student> => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+    const response = await fetch(buildApiUrl(`/students/${id}`), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -35,7 +40,7 @@ export const studentApi = {
 
   // Create new student
   create: async (student: Omit<Student, 'id' | 'subscriptionStatus' | 'expiryDate'> & { startDate?: string; address: string; aadharCard: string; paymentAmount: string | number }): Promise<Student> => {
-    const response = await fetch(`${API_BASE_URL}/students`, {
+    const response = await fetch(buildApiUrl('/students'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(student),
@@ -50,7 +55,7 @@ export const studentApi = {
 
   // Update student
   update: async (id: string, student: Partial<Omit<Student, 'id'>>): Promise<Student> => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+    const response = await fetch(buildApiUrl(`/students/${id}`), {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(student),
@@ -63,7 +68,7 @@ export const studentApi = {
 
   // Delete student
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
+    const response = await fetch(buildApiUrl(`/students/${id}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -74,7 +79,7 @@ export const studentApi = {
 
   // Reset student password
   resetPassword: async (id: string): Promise<{ username: string; password: string }> => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}/reset-password`, {
+    const response = await fetch(buildApiUrl(`/students/${id}/reset-password`), {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -93,7 +98,7 @@ export const analyticsApi = {
     monthlyUsers: Array<{ month: string; count: number }>;
     monthlyEarnings: Array<{ month: string; earnings: number }>;
   }> => {
-    const response = await fetch(`${API_BASE_URL}/analytics/monthly`, {
+    const response = await fetch(buildApiUrl('/analytics/monthly'), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -120,8 +125,8 @@ export const notificationApi = {
   // Get all notifications
   getAll: async (activeOnly?: boolean): Promise<Notification[]> => {
     const url = activeOnly 
-      ? `${API_BASE_URL}/notifications?activeOnly=true`
-      : `${API_BASE_URL}/notifications`;
+      ? buildApiUrl('/notifications?activeOnly=true')
+      : buildApiUrl('/notifications');
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
@@ -133,7 +138,7 @@ export const notificationApi = {
 
   // Get notification by ID
   getById: async (id: string): Promise<Notification> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+    const response = await fetch(buildApiUrl(`/notifications/${id}`), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -144,7 +149,7 @@ export const notificationApi = {
 
   // Create notification
   create: async (notification: Omit<Notification, 'id' | 'createdBy' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<Notification> => {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
+    const response = await fetch(buildApiUrl('/notifications'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(notification),
@@ -159,7 +164,7 @@ export const notificationApi = {
 
   // Update notification
   update: async (id: string, notification: Partial<Omit<Notification, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>>): Promise<Notification> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+    const response = await fetch(buildApiUrl(`/notifications/${id}`), {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(notification),
@@ -174,7 +179,7 @@ export const notificationApi = {
 
   // Delete notification
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+    const response = await fetch(buildApiUrl(`/notifications/${id}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -195,7 +200,7 @@ export interface Note {
 export const noteApi = {
   // Get all notes for the logged-in student
   getAll: async (): Promise<Note[]> => {
-    const response = await fetch(`${API_BASE_URL}/notes`, {
+    const response = await fetch(buildApiUrl('/notes'), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -206,7 +211,7 @@ export const noteApi = {
 
   // Get note by ID
   getById: async (id: string): Promise<Note> => {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
+    const response = await fetch(buildApiUrl(`/notes/${id}`), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -217,7 +222,7 @@ export const noteApi = {
 
   // Create note
   create: async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Promise<Note> => {
-    const response = await fetch(`${API_BASE_URL}/notes`, {
+    const response = await fetch(buildApiUrl('/notes'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(note),
@@ -232,7 +237,7 @@ export const noteApi = {
 
   // Update note
   update: async (id: string, note: Partial<Omit<Note, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Note> => {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
+    const response = await fetch(buildApiUrl(`/notes/${id}`), {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(note),
@@ -247,7 +252,7 @@ export const noteApi = {
 
   // Delete note
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
+    const response = await fetch(buildApiUrl(`/notes/${id}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -278,7 +283,7 @@ export const expenseApi = {
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
     
-    const url = `${API_BASE_URL}/expenses${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = buildApiUrl(`/expenses${params.toString() ? `?${params.toString()}` : ''}`);
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
@@ -290,7 +295,7 @@ export const expenseApi = {
 
   // Get expense by ID
   getById: async (id: string): Promise<Expense> => {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
+    const response = await fetch(buildApiUrl(`/expenses/${id}`), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
@@ -301,7 +306,7 @@ export const expenseApi = {
 
   // Create expense
   create: async (expense: Omit<Expense, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>): Promise<Expense> => {
-    const response = await fetch(`${API_BASE_URL}/expenses`, {
+    const response = await fetch(buildApiUrl('/expenses'), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(expense),
@@ -316,7 +321,7 @@ export const expenseApi = {
 
   // Update expense
   update: async (id: string, expense: Partial<Omit<Expense, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>>): Promise<Expense> => {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
+    const response = await fetch(buildApiUrl(`/expenses/${id}`), {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(expense),
@@ -331,7 +336,7 @@ export const expenseApi = {
 
   // Delete expense
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
+    const response = await fetch(buildApiUrl(`/expenses/${id}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -342,7 +347,7 @@ export const expenseApi = {
 
   // Get monthly expenses statistics
   getMonthlyStatistics: async (): Promise<Array<{ month: string; type: string; total: number }>> => {
-    const response = await fetch(`${API_BASE_URL}/expenses/monthly`, {
+    const response = await fetch(buildApiUrl('/expenses/monthly'), {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
