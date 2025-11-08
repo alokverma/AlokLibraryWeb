@@ -37,9 +37,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const rawApiBase =
+    (import.meta.env?.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api';
+  const API_BASE_URL = rawApiBase.replace(/\/+$/, '');
+
   const verifyToken = async (tokenToVerify: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/verify', {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
         headers: {
           Authorization: `Bearer ${tokenToVerify}`,
         },
@@ -69,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
