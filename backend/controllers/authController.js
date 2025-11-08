@@ -6,6 +6,11 @@ export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('[auth/login] Attempt:', {
+      username,
+      bodyPresent: !!req.body,
+    });
+
     if (!username || !password) {
       return res.status(400).json({
         error: 'Username and password are required',
@@ -19,6 +24,11 @@ export const login = async (req, res) => {
     if (user) {
       // Verify password for admin/teacher
       const isValid = await comparePassword(password, user.password_hash);
+      console.log('[auth/login] Admin/Teacher lookup:', {
+        userId: user.id,
+        role: user.role,
+        isValid,
+      });
       if (!isValid) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
@@ -30,6 +40,10 @@ export const login = async (req, res) => {
     } else {
       // Try to find student
       userData = await verifyStudentPassword(username, password);
+      console.log('[auth/login] Student lookup:', {
+        found: !!userData,
+        studentId: userData?.id,
+      });
       if (!userData) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
