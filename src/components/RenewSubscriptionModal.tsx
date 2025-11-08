@@ -39,7 +39,6 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
   const MONTHLY_FEE = 500;
   const requiredAmount = (parseInt(formData.subscriptionMonths) || 1) * MONTHLY_FEE;
   const paymentAmount = parseFloat(formData.paymentAmount) || 0;
-  const remainingAmount = Math.max(0, requiredAmount - paymentAmount);
 
   useEffect(() => {
     if (student && isOpen) {
