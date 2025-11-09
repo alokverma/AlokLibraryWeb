@@ -47,6 +47,14 @@
     <string name="home_notes_title">My Notes</string>
     <string name="home_subscription_title">My Subscription</string>
     <string name="notes_section_description">Quick todo and notes (max 1000 characters)</string>
+    <string name="home_timer_title">Study Timer</string>
+    <string name="home_timer_focus_label">Focus session</string>
+    <string name="home_timer_break_label">Break</string>
+    <string name="home_timer_start">Start</string>
+    <string name="home_timer_pause">Pause</string>
+    <string name="home_timer_reset">Reset</string>
+    <string name="home_timer_vibration">Enable vibration reminder</string>
+    <string name="home_timer_cycle_complete">Cycle complete! Switching modes.</string>
     <string name="portal_title">Admin and Teacher Portal</string>
     <string name="portal_error_title">Could not load the portal</string>
     <string name="portal_error_message">Check your connection and try again.</string>
