@@ -5,6 +5,7 @@ import {
   updateNotification as dbUpdateNotification,
   deleteNotification as dbDeleteNotification,
 } from '../utils/notificationUtils.js';
+import { sendNotificationToAllStudents } from '../utils/firebaseService.js';
 
 // GET all notifications
 export const getAllNotifications = async (req, res) => {
@@ -68,6 +69,19 @@ export const createNotification = async (req, res) => {
     };
 
     const newNotification = await dbCreateNotification(notificationData);
+
+    // Send FCM push notification to all students (non-blocking)
+    sendNotificationToAllStudents(newNotification)
+      .then((result) => {
+        if (result.success) {
+          console.log(`✅ FCM notification sent: ${result.sent || 0} students notified`);
+        } else {
+          console.warn(`⚠️ FCM notification failed: ${result.message}`);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error sending FCM notification:', error);
+      });
 
     res.status(201).json(newNotification);
   } catch (error) {

@@ -67,6 +67,23 @@ export const initializeDatabase = async () => {
 
     await pool.query(createNotificationsTable);
     
+    // Create FCM tokens table for storing student push notification tokens
+    const createFCMTokensTable = `
+      CREATE TABLE IF NOT EXISTS student_fcm_tokens (
+        id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        student_id VARCHAR(255) NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+        fcm_token TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(student_id, fcm_token)
+      );
+      CREATE INDEX IF NOT EXISTS idx_student_fcm_tokens_student_id ON student_fcm_tokens(student_id);
+      CREATE INDEX IF NOT EXISTS idx_student_fcm_tokens_active ON student_fcm_tokens(is_active) WHERE is_active = true;
+    `;
+
+    await pool.query(createFCMTokensTable);
+    
     // Ensure is_active column has correct default and update existing notifications if needed
     try {
       // Check if is_active column exists and update default if needed

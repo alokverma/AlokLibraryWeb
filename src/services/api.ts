@@ -357,3 +357,45 @@ export const expenseApi = {
   },
 };
 
+export const fcmTokenApi = {
+  // Register FCM token for the authenticated student
+  register: async (fcmToken: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(buildApiUrl('/fcm-tokens'), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ fcmToken }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || errorData.message || 'Failed to register FCM token';
+      throw new Error(errorMessage);
+    }
+    return response.json();
+  },
+
+  // Get current FCM token for the authenticated student
+  get: async (): Promise<{ hasToken: boolean; token: string | null }> => {
+    const response = await fetch(buildApiUrl('/fcm-tokens'), {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get FCM token');
+    }
+    return response.json();
+  },
+
+  // Remove FCM token for the authenticated student
+  remove: async (token: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(buildApiUrl(`/fcm-tokens/${encodeURIComponent(token)}`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || errorData.message || 'Failed to remove FCM token';
+      throw new Error(errorMessage);
+    }
+    return response.json();
+  },
+};
+

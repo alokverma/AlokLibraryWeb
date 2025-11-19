@@ -10,8 +10,10 @@ import analyticsRoutes from './routes/analytics.js';
 import notificationRoutes from './routes/notifications.js';
 import noteRoutes from './routes/notes.js';
 import expenseRoutes from './routes/expenses.js';
+import fcmTokenRoutes from './routes/fcmTokens.js';
 import { initializeDatabase } from './utils/dbUtils.js';
 import { initializeDefaultUsers } from './utils/userUtils.js';
+import { initializeFirebase } from './utils/firebaseService.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +44,22 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/fcm-tokens', fcmTokenRoutes);
+
+if (process.env.SERVE_FRONTEND === 'true') {
+  const distPath = path.resolve(__dirname, '../dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    console.warn(`⚠️  SERVE_FRONTEND is enabled but dist folder not found at ${distPath}`);
+  }
+}
 
 if (process.env.SERVE_FRONTEND === 'true') {
   const distPath = path.resolve(__dirname, '../dist');
@@ -68,6 +86,9 @@ const startServer = async () => {
   try {
     // Initialize database tables
     await initializeDatabase();
+    
+    // Initialize Firebase Admin SDK
+    initializeFirebase();
     
     // Initialize default admin and teacher users
     await initializeDefaultUsers();

@@ -77,6 +77,7 @@ export const en = {
     searchPlaceholder: 'Search students by name, phone, address, or Aadhar...',
     searchResults: 'Search results',
     students: 'students',
+    deleteConfirmation: 'Are you sure you want to delete {name}? This action cannot be undone.',
   },
   
   // Forms

@@ -77,6 +77,7 @@ export const hi = {
     searchPlaceholder: 'नाम, फोन, पता, या आधार से छात्र खोजें...',
     searchResults: 'खोज परिणाम',
     students: 'छात्र',
+    deleteConfirmation: 'क्या आप वाकई {name} को हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।',
   },
   
   // Forms
