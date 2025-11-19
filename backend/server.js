@@ -37,6 +37,12 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files (privacy policy, etc.)
+const publicPath = path.resolve(__dirname, 'public');
+if (fs.existsSync(publicPath)) {
+  app.use('/public', express.static(publicPath));
+}
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -79,6 +85,25 @@ if (process.env.SERVE_FRONTEND === 'true') {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Alok Library API is running' });
+});
+
+// Privacy Policy endpoint
+app.get('/privacy-policy', (req, res) => {
+  const privacyPolicyPath = path.join(__dirname, 'public', 'privacy-policy.html');
+  if (fs.existsSync(privacyPolicyPath)) {
+    res.sendFile(privacyPolicyPath);
+  } else {
+    res.status(404).json({ error: 'Privacy policy not found' });
+  }
+});
+
+// Privacy Policy API endpoint (returns JSON for mobile apps)
+app.get('/api/privacy-policy', (req, res) => {
+  res.json({
+    url: `${req.protocol}://${req.get('host')}/privacy-policy`,
+    lastUpdated: '2024-11-19',
+    version: '1.0'
+  });
 });
 
 // Initialize database and start server
