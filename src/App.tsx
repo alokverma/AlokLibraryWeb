@@ -93,6 +93,20 @@ function App() {
     fetchStudents(); // Refresh the student list
   };
 
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+    if (!window.confirm(t.students.deleteConfirmation?.replace('{name}', studentName) || `Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await studentApi.delete(studentId);
+      fetchStudents(); // Refresh the student list
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      alert(error instanceof Error ? error.message : t.errors.failedToDelete);
+    }
+  };
+
   // Filter students based on search query
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -444,6 +458,8 @@ function App() {
                   onClick={handleStudentCardClick}
                   onRenew={handleRenewSubscription}
                   canRenew={user?.role === 'admin' || user?.role === 'teacher'}
+                  onDelete={handleDeleteStudent}
+                  canDelete={user?.role === 'admin' || user?.role === 'teacher'}
                 />
               ))}
             </div>
@@ -499,6 +515,8 @@ function App() {
                   onClick={handleStudentCardClick}
                   onRenew={handleRenewSubscription}
                   canRenew={user?.role === 'admin' || user?.role === 'teacher'}
+                  onDelete={handleDeleteStudent}
+                  canDelete={user?.role === 'admin' || user?.role === 'teacher'}
                 />
               ))}
             </div>
