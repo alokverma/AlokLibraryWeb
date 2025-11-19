@@ -61,6 +61,21 @@ if (process.env.SERVE_FRONTEND === 'true') {
   }
 }
 
+if (process.env.SERVE_FRONTEND === 'true') {
+  const distPath = path.resolve(__dirname, '../dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    console.warn(`⚠️  SERVE_FRONTEND is enabled but dist folder not found at ${distPath}`);
+  }
+}
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Alok Library API is running' });
