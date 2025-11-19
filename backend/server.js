@@ -77,9 +77,7 @@ const startServer = async () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(`📚 Alok Library API is ready!`);
       console.log(`🗄️  Database: ${process.env.DB_NAME || 'alok_library'}`);
-      console.log(`🔐 Default credentials:`);
-      console.log(`   Admin: username=admin, password=admin123`);
-      console.log(`   Teacher: username=teacher, password=teacher123`);
+      console.log(`🔐 Admin and Teacher accounts initialized`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
