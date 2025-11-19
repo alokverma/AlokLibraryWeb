@@ -141,7 +141,7 @@ JWT_EXPIRES_IN=24h
 
 5. **Verify deployment**
    - Check `/api/health` to verify backend is running.
-   - Log in with default credentials (admin/admin123, teacher/teacher123) and update passwords.
+   - Log in with admin or teacher accounts (default accounts created automatically with complex passwords).
    - Confirm CORS works (frontend can reach backend) and that notes/notifications respect subscription state.
 
 ## 🧩 Scripts & Utilities
@@ -152,7 +152,7 @@ JWT_EXPIRES_IN=24h
 
 ## 🔒 Security Checklist Before Production
 
-- Change default admin/teacher passwords immediately.
+- Admin and teacher accounts use complex passwords by default (update if needed for production).
 - Set a strong `JWT_SECRET`.
 - Enable SSL (`DB_SSL=true`) when using hosted databases.
 - Restrict `FRONTEND_ORIGIN` to trusted domains only.

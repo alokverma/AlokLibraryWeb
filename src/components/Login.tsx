@@ -88,16 +88,6 @@ export const Login = () => {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
-            Default credentials:
-            <br />
-            Admin: <span className="font-mono">admin</span> / <span className="font-mono">admin123</span>
-            <br />
-            Teacher: <span className="font-mono">teacher</span> / <span className="font-mono">teacher123</span>
-          </p>
-        </div>
       </div>
     </div>
   );

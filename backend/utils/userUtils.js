@@ -106,16 +106,51 @@ export const verifyStudentPassword = async (username, password) => {
   }
 };
 
-// Initialize default admin and teacher accounts
+// Update user password
+export const updateUserPassword = async (username, newPassword) => {
+  try {
+    const passwordHash = await hashPassword(newPassword);
+    
+    const result = await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE username = $2 RETURNING id, username, role',
+      [passwordHash, username]
+    );
+    
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Error updating user password:', error);
+    throw error;
+  }
+};
+
+// Initialize default admin and teacher accounts with complex passwords
 export const initializeDefaultUsers = async () => {
   try {
-    // Create admin user
-    await createUser('admin', 'admin123', 'admin');
-    console.log('✅ Admin user created (username: admin, password: admin123)');
+    // Complex passwords: Alphanumeric with special characters
+    const adminPassword = 'Al0k@dmin2024!';
+    const teacherPassword = 'T3ach@2024!';
     
-    // Create teacher user
-    await createUser('teacher', 'teacher123', 'teacher');
-    console.log('✅ Teacher user created (username: teacher, password: teacher123)');
+    // Create or update admin user
+    const adminUser = await findUserByUsername('admin');
+    if (!adminUser) {
+      await createUser('admin', adminPassword, 'admin');
+      console.log('✅ Admin user created');
+    } else {
+      // Update password if it exists (ensures new complex password is set)
+      await updateUserPassword('admin', adminPassword);
+      console.log('✅ Admin user password updated');
+    }
+    
+    // Create or update teacher user
+    const teacherUser = await findUserByUsername('teacher');
+    if (!teacherUser) {
+      await createUser('teacher', teacherPassword, 'teacher');
+      console.log('✅ Teacher user created');
+    } else {
+      // Update password if it exists (ensures new complex password is set)
+      await updateUserPassword('teacher', teacherPassword);
+      console.log('✅ Teacher user password updated');
+    }
   } catch (error) {
     console.error('Error initializing default users:', error);
     // Don't throw, just log - users might already exist
