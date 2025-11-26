@@ -67,7 +67,7 @@ export const getStudentById = async (req, res) => {
 // POST create new student
 export const createStudent = async (req, res) => {
   try {
-    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone: providedIsPaymentDone, profilePicture } = req.body;
+    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone: providedIsPaymentDone, profilePicture, email, seatNumber } = req.body;
 
     // Validation
     if (!name || !phoneNumber || !address || !aadharCard || paymentAmount === undefined || paymentAmount === null) {
@@ -156,6 +156,8 @@ export const createStudent = async (req, res) => {
       profilePicture:
         profilePicture ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+      email: email || null,
+      seatNumber: seatNumber ? parseInt(seatNumber) : null,
     };
 
     const newStudent = await dbCreateStudent(studentData);
@@ -180,7 +182,7 @@ export const createStudent = async (req, res) => {
 export const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phoneNumber, expiryDate, profilePicture } = req.body;
+    const { name, phoneNumber, expiryDate, profilePicture, email, seatNumber } = req.body;
 
     const existingStudent = await dbGetStudentById(id);
     if (!existingStudent) {
@@ -192,6 +194,8 @@ export const updateStudent = async (req, res) => {
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (email !== undefined) updateData.email = email;
+    if (seatNumber !== undefined) updateData.seatNumber = seatNumber ? parseInt(seatNumber) : null;
 
     const updatedStudent = await dbUpdateStudent(id, updateData);
     const studentWithStatus = {

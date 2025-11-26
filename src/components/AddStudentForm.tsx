@@ -28,6 +28,8 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
   const [formData, setFormData] = useState({
     name: '',
     phoneNumber: '',
+    email: '',
+    seatNumber: '',
     address: '',
     aadharCard: '',
     startDate: getTodayDate(),
@@ -57,6 +59,10 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
       newErrors.phoneNumber = `${t.students.phoneNumber} ${t.forms.required}`;
     } else if (!/^\+?[\d\s-()]+$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = t.forms.invalidPhone;
+    }
+
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = t.forms.invalidEmail;
     }
 
     if (!formData.address.trim()) {
@@ -125,6 +131,8 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
         paymentAmount: parseFloat(formData.paymentAmount),
         isPaymentDone: isPaymentDone,
         aadharCard: formData.aadharCard.replace(/\s/g, ''), // Remove any spaces
+        email: formData.email.trim() || undefined,
+        seatNumber: formData.seatNumber ? parseInt(formData.seatNumber) : undefined,
       };
       const newStudent = await studentApi.create(submitData);
 
@@ -132,6 +140,8 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
       setFormData({
         name: '',
         phoneNumber: '',
+        email: '',
+        seatNumber: '',
         address: '',
         aadharCard: '',
         startDate: getTodayDate(),
@@ -262,6 +272,59 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
                 />
                 {errors.phoneNumber && (
                   <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                )}
+              </div>
+
+              {/* Email field */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {t.students.email}
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="student@example.com"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Seat Number field */}
+              <div>
+                <label
+                  htmlFor="seatNumber"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {t.students.seatNumber}
+                </label>
+                <select
+                  id="seatNumber"
+                  name="seatNumber"
+                  value={formData.seatNumber}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.seatNumber ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select seat number</option>
+                  {Array.from({ length: 100 }, (_, i) => i + 1).map((seat) => (
+                    <option key={seat} value={seat.toString()}>
+                      {seat}
+                    </option>
+                  ))}
+                </select>
+                {errors.seatNumber && (
+                  <p className="mt-1 text-sm text-red-600">{errors.seatNumber}</p>
                 )}
               </div>
 

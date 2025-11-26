@@ -4,6 +4,8 @@ export interface Student {
   phoneNumber: string;
   address?: string;
   aadharCard?: string;
+  email?: string;
+  seatNumber?: number;
   startDate?: string;
   expiryDate: string;
   subscriptionMonths?: number;

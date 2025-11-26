@@ -143,6 +143,14 @@ export const initializeDatabase = async () => {
       // Columns might already exist, ignore
     }
 
+    // Add email and seat_number columns if they don't exist
+    try {
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS email VARCHAR(255);');
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS seat_number INTEGER;');
+    } catch (alterError) {
+      // Columns might already exist, ignore
+    }
+
     // Create student_notes table
     const createStudentNotesTable = `
       CREATE TABLE IF NOT EXISTS student_notes (
@@ -206,7 +214,8 @@ export const getAllStudents = async (studentId = null) => {
       query = `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
                start_date::text as "startDate", expiry_date::text as "expiryDate", 
                subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
-               is_payment_done as "isPaymentDone", profile_picture as "profilePicture" 
+               is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
+               email, seat_number as "seatNumber"
                FROM students WHERE id = $1 ORDER BY created_at DESC`;
       params = [studentId];
     } else {
@@ -214,7 +223,8 @@ export const getAllStudents = async (studentId = null) => {
       query = `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
                start_date::text as "startDate", expiry_date::text as "expiryDate", 
                subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
-               is_payment_done as "isPaymentDone", profile_picture as "profilePicture" 
+               is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
+               email, seat_number as "seatNumber"
                FROM students ORDER BY created_at DESC`;
       params = [];
     }
@@ -234,7 +244,8 @@ export const getStudentById = async (id) => {
       `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
-       is_payment_done as "isPaymentDone", profile_picture as "profilePicture" 
+       is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
+       email, seat_number as "seatNumber"
        FROM students WHERE id = $1`,
       [id]
     );
@@ -248,15 +259,16 @@ export const getStudentById = async (id) => {
 // Create new student
 export const createStudent = async (studentData) => {
   try {
-    const { id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture } = studentData;
+    const { id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
     const result = await pool.query(
-      `INSERT INTO students (id, name, phone_number, address, aadhar_card, start_date, expiry_date, subscription_months, payment_amount, is_payment_done, profile_picture) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+      `INSERT INTO students (id, name, phone_number, address, aadhar_card, start_date, expiry_date, subscription_months, payment_amount, is_payment_done, profile_picture, email, seat_number) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
        RETURNING id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
-       is_payment_done as "isPaymentDone", profile_picture as "profilePicture"`,
-      [id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths || 1, paymentAmount, isPaymentDone || false, profilePicture]
+       is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
+       email, seat_number as "seatNumber"`,
+      [id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths || 1, paymentAmount, isPaymentDone || false, profilePicture, email || null, seatNumber || null]
     );
     return result.rows[0];
   } catch (error) {
@@ -268,7 +280,7 @@ export const createStudent = async (studentData) => {
 // Update student
 export const updateStudent = async (id, studentData) => {
   try {
-    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture } = studentData;
+    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -313,6 +325,14 @@ export const updateStudent = async (id, studentData) => {
       updates.push(`profile_picture = $${paramCount++}`);
       values.push(profilePicture);
     }
+    if (email !== undefined) {
+      updates.push(`email = $${paramCount++}`);
+      values.push(email);
+    }
+    if (seatNumber !== undefined) {
+      updates.push(`seat_number = $${paramCount++}`);
+      values.push(seatNumber);
+    }
 
     if (updates.length === 0) {
       // No updates provided, just return the existing student
@@ -327,7 +347,8 @@ export const updateStudent = async (id, studentData) => {
        RETURNING id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
-       is_payment_done as "isPaymentDone", profile_picture as "profilePicture"`,
+       is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
+       email, seat_number as "seatNumber"`,
       values
     );
 

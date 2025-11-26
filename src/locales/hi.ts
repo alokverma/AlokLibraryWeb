@@ -55,6 +55,8 @@ export const hi = {
     phoneNumber: 'फोन नंबर',
     address: 'पता',
     aadharCard: 'आधार कार्ड नंबर',
+    email: 'ईमेल',
+    seatNumber: 'सीट नंबर',
     subscriptionStartDate: 'सदस्यता प्रारंभ तिथि',
     subscriptionExpiryDate: 'सदस्यता समाप्ति तिथि',
     subscriptionDuration: 'सदस्यता अवधि (महीने)',
@@ -84,6 +86,7 @@ export const hi = {
   forms: {
     required: 'आवश्यक',
     invalidPhone: 'कृपया एक वैध फोन नंबर दर्ज करें',
+    invalidEmail: 'कृपया एक वैध ईमेल पता दर्ज करें',
     invalidAadhar: 'आधार कार्ड ठीक 12 अंकों का होना चाहिए',
     invalidDate: 'कृपया एक वैध तिथि दर्ज करें',
     futureDateNotAllowed: 'सदस्यता प्रारंभ तिथि भविष्य में नहीं हो सकती',

@@ -55,6 +55,8 @@ export const en = {
     phoneNumber: 'Phone Number',
     address: 'Address',
     aadharCard: 'Aadhar Card Number',
+    email: 'Email',
+    seatNumber: 'Seat Number',
     subscriptionStartDate: 'Subscription Start Date',
     subscriptionExpiryDate: 'Subscription Expiry Date',
     subscriptionDuration: 'Subscription Duration (Months)',
@@ -84,6 +86,7 @@ export const en = {
   forms: {
     required: 'Required',
     invalidPhone: 'Please enter a valid phone number',
+    invalidEmail: 'Please enter a valid email address',
     invalidAadhar: 'Aadhar card must be exactly 12 digits',
     invalidDate: 'Please enter a valid date',
     futureDateNotAllowed: 'Subscription start date cannot be in the future',
