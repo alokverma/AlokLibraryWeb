@@ -91,13 +91,72 @@ export const registerFCMToken = async (studentId, fcmToken) => {
  */
 export const removeFCMToken = async (studentId, fcmToken) => {
   try {
-    await pool.query(
-      'UPDATE student_fcm_tokens SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE student_id = $1 AND fcm_token = $2',
-      [studentId, fcmToken]
+    if (!studentId || !fcmToken) {
+      throw new Error('Student ID and FCM token are required');
+    }
+
+    // Decode URL-encoded token if needed
+    const decodedToken = decodeURIComponent(fcmToken);
+
+    // Check if token exists and belongs to this student
+    const checkResult = await pool.query(
+      'SELECT id FROM student_fcm_tokens WHERE student_id = $1 AND fcm_token = $2',
+      [studentId, decodedToken]
     );
-    return { success: true, message: 'Token removed successfully' };
+
+    if (checkResult.rows.length === 0) {
+      return { 
+        success: false, 
+        message: 'Token not found or does not belong to this student' 
+      };
+    }
+
+    // Mark token as inactive
+    const updateResult = await pool.query(
+      'UPDATE student_fcm_tokens SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE student_id = $1 AND fcm_token = $2 RETURNING id',
+      [studentId, decodedToken]
+    );
+
+    if (updateResult.rows.length === 0) {
+      return { 
+        success: false, 
+        message: 'Failed to remove token' 
+      };
+    }
+
+    return { 
+      success: true, 
+      message: 'Token removed successfully' 
+    };
   } catch (error) {
     console.error('Error removing FCM token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove all FCM tokens for a student (used on logout)
+ * @param {string} studentId - Student ID
+ * @returns {Promise<Object>} Result object
+ */
+export const removeAllFCMTokensForStudent = async (studentId) => {
+  try {
+    if (!studentId) {
+      throw new Error('Student ID is required');
+    }
+
+    const result = await pool.query(
+      'UPDATE student_fcm_tokens SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE student_id = $1 AND is_active = true RETURNING id',
+      [studentId]
+    );
+
+    return { 
+      success: true, 
+      message: `Removed ${result.rowCount} token(s) for student`,
+      count: result.rowCount
+    };
+  } catch (error) {
+    console.error('Error removing all FCM tokens for student:', error);
     throw error;
   }
 };

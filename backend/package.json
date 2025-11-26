@@ -24,6 +24,7 @@
     "express": "^4.18.2",
     "firebase-admin": "^13.6.0",
     "jsonwebtoken": "^9.0.2",
+    "openai": "^4.104.0",
     "pg": "^8.11.3",
     "uuid": "^9.0.1"
   },

@@ -11,6 +11,7 @@ import notificationRoutes from './routes/notifications.js';
 import noteRoutes from './routes/notes.js';
 import expenseRoutes from './routes/expenses.js';
 import fcmTokenRoutes from './routes/fcmTokens.js';
+import chatRoutes from './routes/chat.js';
 import { initializeDatabase } from './utils/dbUtils.js';
 import { initializeDefaultUsers } from './utils/userUtils.js';
 import { initializeFirebase } from './utils/firebaseService.js';
@@ -51,6 +52,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/fcm-tokens', fcmTokenRoutes);
+app.use('/api/chat', chatRoutes);
 
 if (process.env.SERVE_FRONTEND === 'true') {
   const distPath = path.resolve(__dirname, '../dist');

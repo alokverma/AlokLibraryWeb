@@ -18,7 +18,8 @@ router.get('/', getToken);
 router.post('/', registerToken);
 
 // DELETE remove FCM token for authenticated student
-router.delete('/:token', removeToken);
+// Supports both: token in body (recommended) or token in URL path
+router.delete('/:token?', removeToken);
 
 export default router;
 
