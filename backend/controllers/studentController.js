@@ -7,7 +7,8 @@ import {
   deleteStudent as dbDeleteStudent,
   determineSubscriptionStatus,
 } from '../utils/dbUtils.js';
-import { generateStudentCredentials, setStudentCredentials } from '../utils/userUtils.js';
+import { generateStudentCredentials, setStudentCredentials, getStudentPassword } from '../utils/userUtils.js';
+import { getRequiredAmount } from '../utils/subscriptionUtils.js';
 
 // GET all students
 export const getAllStudents = async (req, res) => {
@@ -124,8 +125,8 @@ export const createStudent = async (req, res) => {
     }
 
     // Calculate isPaymentDone based on remaining amount if not provided
-    const MONTHLY_FEE = 500;
-    const requiredAmount = months * MONTHLY_FEE;
+    // Use discount calculation: 3 months = 10% off, 6 months = 15% off
+    const requiredAmount = getRequiredAmount(months);
     const remainingAmount = Math.max(0, requiredAmount - payment);
     let isPaymentDone;
     
@@ -152,6 +153,7 @@ export const createStudent = async (req, res) => {
       expiryDate: subscriptionExpiryDate,
       subscriptionMonths: months,
       paymentAmount: payment,
+      requiredAmount: requiredAmount, // Store the required amount at time of creation (preserves discount history)
       isPaymentDone: isPaymentDone,
       profilePicture:
         profilePicture ||
@@ -182,7 +184,7 @@ export const createStudent = async (req, res) => {
 export const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phoneNumber, expiryDate, profilePicture, email, seatNumber } = req.body;
+    const { name, phoneNumber, expiryDate, profilePicture, email, seatNumber, startDate, subscriptionMonths, paymentAmount, isPaymentDone: providedIsPaymentDone } = req.body;
 
     const existingStudent = await dbGetStudentById(id);
     if (!existingStudent) {
@@ -193,9 +195,63 @@ export const updateStudent = async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
+    if (startDate !== undefined) updateData.startDate = startDate;
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
     if (email !== undefined) updateData.email = email;
     if (seatNumber !== undefined) updateData.seatNumber = seatNumber ? parseInt(seatNumber) : null;
+    
+    // Handle subscription updates with discount calculation
+    if (subscriptionMonths !== undefined) {
+      const months = parseInt(subscriptionMonths);
+      if (isNaN(months) || months < 1 || months > 12) {
+        return res.status(400).json({
+          error: 'Subscription months must be between 1 and 12',
+        });
+      }
+      updateData.subscriptionMonths = months;
+      
+      // Calculate isPaymentDone based on remaining amount if paymentAmount is provided
+      if (paymentAmount !== undefined) {
+        const payment = parseFloat(paymentAmount);
+        if (isNaN(payment) || payment < 0) {
+          return res.status(400).json({
+            error: 'Payment amount must be a positive number',
+          });
+        }
+        updateData.paymentAmount = payment;
+        
+        // Use discount calculation: 3 months = 20% off, 6 months = 30% off
+        const requiredAmount = getRequiredAmount(months);
+        updateData.requiredAmount = requiredAmount; // Store required amount (preserves discount history)
+        const remainingAmount = Math.max(0, requiredAmount - payment);
+        
+        if (providedIsPaymentDone !== undefined && providedIsPaymentDone !== null) {
+          updateData.isPaymentDone = providedIsPaymentDone === true || providedIsPaymentDone === 'true';
+        } else {
+          updateData.isPaymentDone = remainingAmount === 0;
+        }
+      }
+    } else if (paymentAmount !== undefined) {
+      // Only payment amount is being updated, calculate based on existing subscription months
+      const payment = parseFloat(paymentAmount);
+      if (isNaN(payment) || payment < 0) {
+        return res.status(400).json({
+          error: 'Payment amount must be a positive number',
+        });
+      }
+      updateData.paymentAmount = payment;
+      
+      const months = existingStudent.subscriptionMonths || 1;
+      const requiredAmount = getRequiredAmount(months);
+      updateData.requiredAmount = requiredAmount; // Store required amount (preserves discount history)
+      const remainingAmount = Math.max(0, requiredAmount - payment);
+      
+      if (providedIsPaymentDone !== undefined && providedIsPaymentDone !== null) {
+        updateData.isPaymentDone = providedIsPaymentDone === true || providedIsPaymentDone === 'true';
+      } else {
+        updateData.isPaymentDone = remainingAmount === 0;
+      }
+    }
 
     const updatedStudent = await dbUpdateStudent(id, updateData);
     const studentWithStatus = {
@@ -227,7 +283,7 @@ export const deleteStudent = async (req, res) => {
   }
 };
 
-// POST reset student password
+// POST show student password (shows existing password, generates new one only if password doesn't exist)
 export const resetStudentPassword = async (req, res) => {
   try {
     const { id } = req.params;
@@ -237,19 +293,52 @@ export const resetStudentPassword = async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Generate new credentials
+    // Try to get existing password (including plaintext)
+    const existingCredentials = await getStudentPassword(id);
+    
+    // Check if we have a stored plaintext password - return it without changing anything
+    if (existingCredentials && existingCredentials.password && existingCredentials.password.trim() !== '') {
+      // Return existing password - don't generate new one
+      res.json({
+        username: existingCredentials.username || student.username,
+        password: existingCredentials.password,
+        message: 'Password retrieved successfully',
+      });
+      return; // Exit here to prevent generating new password
+    }
+    
+    // No plaintext password stored - need to handle this case
+    // If student already has username, preserve it and only generate new password
+    if (student.username) {
+      // Student has credentials but no stored plaintext
+      // Generate a new password but keep the existing username
+      const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase();
+      const passwordFinal = password.substring(0, 8);
+      
+      // Update credentials with existing username and new password (stores plaintext)
+      await setStudentCredentials(student.id, student.username, passwordFinal);
+      
+      res.json({
+        username: student.username,
+        password: passwordFinal,
+        message: 'Password generated and saved. This password will be shown on future requests.',
+      });
+      return;
+    }
+    
+    // No credentials exist at all - generate new ones (for completely new students)
     const { username, password } = generateStudentCredentials(student.name, student.id);
     
-    // Set the new credentials in the database
+    // Set the new credentials in the database (includes plaintext storage)
     await setStudentCredentials(student.id, username, password);
     
     res.json({
       username,
       password,
-      message: 'Password reset successfully',
+      message: 'Password generated successfully',
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to reset password', message: error.message });
+    res.status(500).json({ error: 'Failed to get password', message: error.message });
   }
 };
 

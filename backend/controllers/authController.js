@@ -1,4 +1,4 @@
-import { findUserByUsername, verifyStudentPassword } from '../utils/userUtils.js';
+import { findUserByUsername, verifyStudentPassword, updateStudentLoginDate } from '../utils/userUtils.js';
 import { comparePassword, generateToken } from '../utils/auth.js';
 
 // Login endpoint
@@ -46,6 +46,11 @@ export const login = async (req, res) => {
       });
       if (!userData) {
         return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Update last login date (no password expiry)
+      if (userData.role === 'student') {
+        await updateStudentLoginDate(userData.id);
       }
     }
 

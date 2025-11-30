@@ -10,6 +10,7 @@ export interface Student {
   expiryDate: string;
   subscriptionMonths?: number;
   paymentAmount?: number;
+  requiredAmount?: number;
   isPaymentDone?: boolean;
   profilePicture: string;
   subscriptionStatus: 'active' | 'expired';

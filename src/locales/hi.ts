@@ -68,7 +68,7 @@ export const hi = {
     profilePicture: 'प्रोफ़ाइल चित्र URL (वैकल्पिक)',
     active: 'सक्रिय',
     expired: 'समाप्त',
-    resetPassword: 'पासवर्ड रीसेट करें',
+    resetPassword: 'पासवर्ड दिखाएं',
     renewSubscription: 'सदस्यता नवीकरण करें',
     studentDetails: 'छात्र विवरण',
     expires: 'समाप्त होता है',
@@ -209,7 +209,7 @@ export const hi = {
     failedToUpdate: 'छात्र अपडेट करने में विफल. कृपया पुनः प्रयास करें।',
     failedToDelete: 'छात्र हटाने में विफल. कृपया पुनः प्रयास करें।',
     failedToRenew: 'सदस्यता नवीकरण करने में विफल. कृपया पुनः प्रयास करें।',
-    failedToResetPassword: 'पासवर्ड रीसेट करने में विफल. कृपया पुनः प्रयास करें।',
+    failedToResetPassword: 'पासवर्ड जेनरेट करने में विफल. कृपया पुनः प्रयास करें।',
   },
 };
 

@@ -1,5 +1,6 @@
 import { Student } from '../types/Student';
 import { useLanguage } from '../context/LanguageContext';
+import { calculateSubscriptionAmount } from '../utils/subscriptionUtils';
 
 interface StudentCardProps {
   student: Student;
@@ -23,10 +24,14 @@ export const StudentCard = ({ student, onResetPassword, canResetPassword = false
   });
 
   // Calculate payment status based on remaining amount
-  const MONTHLY_FEE = 500;
-  const subscriptionMonths = student.subscriptionMonths || 1;
-  const requiredAmount = subscriptionMonths * MONTHLY_FEE;
+  // Use stored requiredAmount (preserves discount history) or recalculate if not available
   const paymentAmount = student.paymentAmount || 0;
+  const requiredAmount = student.requiredAmount ?? (() => {
+    // Fallback: recalculate if requiredAmount not stored (for backward compatibility)
+    const subscriptionMonths = student.subscriptionMonths || 1;
+    const subscriptionCalc = calculateSubscriptionAmount(subscriptionMonths);
+    return subscriptionCalc.finalAmount;
+  })();
   const remainingAmount = Math.max(0, requiredAmount - paymentAmount);
   
   // Determine payment status based on remaining amount

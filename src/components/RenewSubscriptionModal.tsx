@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Student } from '../types/Student';
 import { studentApi } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { calculateSubscriptionAmount } from '../utils/subscriptionUtils';
 
 interface RenewSubscriptionModalProps {
   isOpen: boolean;
@@ -35,8 +36,10 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
 
   const calculatedExpiryDate = calculateExpiryDate(formData.startDate, parseInt(formData.subscriptionMonths) || 1);
   
-  // Calculate required amount and remaining amount
-  const MONTHLY_FEE = 500;
+  // Calculate required amount with discounts (3 months: 10% off, 6 months: 15% off)
+  const subscriptionMonths = parseInt(formData.subscriptionMonths) || 1;
+  const subscriptionCalc = calculateSubscriptionAmount(subscriptionMonths);
+  const requiredAmount = subscriptionCalc.finalAmount;
 
   useEffect(() => {
     if (student && isOpen) {
@@ -103,7 +106,8 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
       // Calculate isPaymentDone based on remaining amount
       const payment = parseFloat(formData.paymentAmount);
       const months = parseInt(formData.subscriptionMonths) || 1;
-      const required = months * MONTHLY_FEE;
+      const calc = calculateSubscriptionAmount(months);
+      const required = calc.finalAmount;
       const remaining = Math.max(0, required - payment);
       const isPaymentDone = remaining === 0;
 
@@ -113,6 +117,7 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
         expiryDate: expiryDate,
         subscriptionMonths: parseInt(formData.subscriptionMonths),
         paymentAmount: parseFloat(formData.paymentAmount),
+        requiredAmount: required, // Store required amount (preserves discount history)
         isPaymentDone: isPaymentDone,
       };
 
@@ -211,6 +216,27 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
                 </p>
               </div>
 
+              {/* Required Amount Display */}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Required Amount:</span>
+                  <span className="text-lg font-semibold text-blue-900">₹{requiredAmount.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  ₹{subscriptionCalc.monthlyFee} per month × {formData.subscriptionMonths} {parseInt(formData.subscriptionMonths) === 1 ? t.forms.month : t.forms.months}
+                  {subscriptionCalc.discountPercent > 0 && (
+                    <span className="text-green-600 font-semibold ml-1">
+                      ({subscriptionCalc.discountPercent}% discount applied: -₹{subscriptionCalc.discountAmount.toFixed(2)})
+                    </span>
+                  )}
+                </p>
+                {subscriptionCalc.baseAmount !== subscriptionCalc.finalAmount && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Base: ₹{subscriptionCalc.baseAmount.toFixed(2)} → Final: ₹{subscriptionCalc.finalAmount.toFixed(2)}
+                  </p>
+                )}
+              </div>
+
               {/* Payment Amount */}
               <div>
                 <label
@@ -220,17 +246,37 @@ export const RenewSubscriptionModal = ({ isOpen, onClose, student, onSuccess }: 
                   {t.students.paymentAmount} <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   id="paymentAmount"
                   name="paymentAmount"
                   value={formData.paymentAmount}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Ensure only one decimal point
+                    const parts = value.split('.');
+                    const filteredValue = parts.length > 2 
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : value;
+                    // Limit to 2 decimal places
+                    const decimalParts = filteredValue.split('.');
+                    const finalValue = decimalParts.length === 2 && decimalParts[1].length > 2
+                      ? decimalParts[0] + '.' + decimalParts[1].substring(0, 2)
+                      : filteredValue;
+                    setFormData((prev) => ({ ...prev, paymentAmount: finalValue }));
+                    if (errors.paymentAmount) {
+                      setErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.paymentAmount;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.paymentAmount ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="500.00"
+                  placeholder={`Enter amount (max ₹${requiredAmount.toFixed(2)})`}
                 />
                 {errors.paymentAmount && (
                   <p className="mt-1 text-sm text-red-600">{errors.paymentAmount}</p>

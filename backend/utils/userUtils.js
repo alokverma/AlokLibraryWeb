@@ -38,7 +38,7 @@ export const findUserByUsername = async (username) => {
 export const findStudentByUsername = async (username) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, username, password_hash FROM students WHERE username = $1',
+      'SELECT id, name, username, password_hash, password_expiry_date FROM students WHERE username = $1',
       [username]
     );
     return result.rows[0] || null;
@@ -64,19 +64,46 @@ export const generateStudentCredentials = (studentName, studentId) => {
   return { username, password: passwordFinal };
 };
 
-// Set student credentials
+// Set student credentials (no password expiry)
+// Stores both hashed password (for authentication) and plaintext password (for retrieval)
 export const setStudentCredentials = async (studentId, username, password) => {
   try {
     const passwordHash = await hashPassword(password);
     
     const result = await pool.query(
-      'UPDATE students SET username = $1, password_hash = $2 WHERE id = $3 RETURNING id, username',
-      [username, passwordHash, studentId]
+      'UPDATE students SET username = $1, password_hash = $2, password_plaintext = $3 WHERE id = $4 RETURNING id, username',
+      [username, passwordHash, password, studentId]
     );
     
     return result.rows[0] || null;
   } catch (error) {
     console.error('Error setting student credentials:', error);
+    throw error;
+  }
+};
+
+// Get student password (retrieve stored plaintext password)
+export const getStudentPassword = async (studentId) => {
+  try {
+    const result = await pool.query(
+      'SELECT username, password_plaintext FROM students WHERE id = $1',
+      [studentId]
+    );
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const student = result.rows[0];
+    
+    // Return null if password_plaintext is NULL or empty
+    // This allows the caller to distinguish between "no credentials" and "no stored plaintext"
+    return {
+      username: student.username || null,
+      password: student.password_plaintext || null,
+    };
+  } catch (error) {
+    console.error('Error getting student password:', error);
     throw error;
   }
 };
@@ -102,6 +129,21 @@ export const verifyStudentPassword = async (username, password) => {
     };
   } catch (error) {
     console.error('Error verifying student password:', error);
+    throw error;
+  }
+};
+
+// Update student last login date
+export const updateStudentLoginDate = async (studentId) => {
+  try {
+    const now = new Date();
+
+    await pool.query(
+      'UPDATE students SET last_login_date = $1 WHERE id = $2',
+      [now, studentId]
+    );
+  } catch (error) {
+    console.error('Error updating student login date:', error);
     throw error;
   }
 };

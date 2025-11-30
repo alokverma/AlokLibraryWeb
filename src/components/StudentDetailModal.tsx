@@ -1,5 +1,6 @@
 import { Student } from '../types/Student';
 import { useLanguage } from '../context/LanguageContext';
+import { calculateSubscriptionAmount } from '../utils/subscriptionUtils';
 
 interface StudentDetailModalProps {
   isOpen: boolean;
@@ -34,10 +35,16 @@ export const StudentDetailModal = ({ isOpen, onClose, student }: StudentDetailMo
   };
 
   // Calculate remaining amount and payment status
-  const MONTHLY_FEE = 500;
-  const subscriptionMonths = student.subscriptionMonths || 1;
-  const requiredAmount = subscriptionMonths * MONTHLY_FEE;
+  // Use stored requiredAmount (preserves discount history) or recalculate if not available
   const paymentAmount = student.paymentAmount || 0;
+  const requiredAmount = student.requiredAmount ?? (() => {
+    // Fallback: recalculate if requiredAmount not stored (for backward compatibility)
+    const subscriptionMonths = student.subscriptionMonths || 1;
+    const subscriptionCalc = calculateSubscriptionAmount(subscriptionMonths);
+    return subscriptionCalc.finalAmount;
+  })();
+  const subscriptionMonths = student.subscriptionMonths || 1;
+  const subscriptionCalc = calculateSubscriptionAmount(subscriptionMonths); // For display purposes
   const remainingAmount = Math.max(0, requiredAmount - paymentAmount);
   const hasRemainingAmount = remainingAmount > 0;
   
@@ -212,7 +219,14 @@ export const StudentDetailModal = ({ isOpen, onClose, student }: StudentDetailMo
                     </svg>
                     <span className="font-medium">{formatCurrency(requiredAmount)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">₹{MONTHLY_FEE} {t.modals.studentDetail.perMonth} × {subscriptionMonths} {subscriptionMonths === 1 ? t.modals.studentDetail.month : t.modals.studentDetail.months}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ₹{subscriptionCalc.monthlyFee} {t.modals.studentDetail.perMonth} × {subscriptionMonths} {subscriptionMonths === 1 ? t.modals.studentDetail.month : t.modals.studentDetail.months}
+                    {subscriptionCalc.discountPercent > 0 && (
+                      <span className="text-green-600 font-semibold ml-1">
+                        ({subscriptionCalc.discountPercent}% discount: -₹{subscriptionCalc.discountAmount.toFixed(2)})
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
 

@@ -22,7 +22,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
-  const [newStudentCredentials, setNewStudentCredentials] = useState<{username: string; password: string; studentName?: string} | null>(null);
+  const [newStudentCredentials, setNewStudentCredentials] = useState<{username: string; password: string; studentName?: string; phoneNumber?: string} | null>(null);
   const [activeTab, setActiveTab] = useState<'students' | 'analytics' | 'notifications' | 'expenses'>('students');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -50,7 +50,7 @@ function App() {
     }
   }, [isAuthenticated]);
 
-  const handleAddSuccess = (credentials?: {username: string; password: string}) => {
+  const handleAddSuccess = (credentials?: {username: string; password: string; phoneNumber?: string; studentName?: string}) => {
     if (credentials) {
       setNewStudentCredentials(credentials);
     }
@@ -59,14 +59,17 @@ function App() {
 
   const handleResetPassword = async (studentId: string, studentName: string) => {
     try {
+      // Fetch student details to get phone number
+      const student = await studentApi.getById(studentId);
       const credentials = await studentApi.resetPassword(studentId);
       setNewStudentCredentials({
         ...credentials,
         studentName,
+        phoneNumber: student.phoneNumber,
       });
     } catch (error) {
       console.error('Error resetting password:', error);
-      alert(error instanceof Error ? error.message : 'Failed to reset password. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to generate password. Please try again.');
     }
   };
 
@@ -568,6 +571,7 @@ function App() {
         username={newStudentCredentials?.username || ''}
         password={newStudentCredentials?.password || ''}
         studentName={newStudentCredentials?.studentName}
+        phoneNumber={newStudentCredentials?.phoneNumber}
       />
 
       {/* Student Detail Modal */}

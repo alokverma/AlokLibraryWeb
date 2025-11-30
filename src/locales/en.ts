@@ -68,7 +68,7 @@ export const en = {
     profilePicture: 'Profile Picture URL (Optional)',
     active: 'Active',
     expired: 'Expired',
-    resetPassword: 'Reset Password',
+    resetPassword: 'Show Password',
     renewSubscription: 'Renew Subscription',
     studentDetails: 'Student Details',
     expires: 'Expires',
@@ -209,7 +209,7 @@ export const en = {
     failedToUpdate: 'Failed to update student. Please try again.',
     failedToDelete: 'Failed to delete student. Please try again.',
     failedToRenew: 'Failed to renew subscription. Please try again.',
-    failedToResetPassword: 'Failed to reset password. Please try again.',
+    failedToResetPassword: 'Failed to generate password. Please try again.',
   },
 };
 

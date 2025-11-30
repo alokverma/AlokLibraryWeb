@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { studentApi } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { calculateSubscriptionAmount } from '../utils/subscriptionUtils';
 
 interface AddStudentFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (credentials?: {username: string; password: string}) => void;
+  onSuccess: (credentials?: {username: string; password: string; phoneNumber?: string; studentName?: string}) => void;
 }
 
 export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormProps) => {
@@ -42,9 +43,10 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
   
   const calculatedExpiryDate = calculateExpiryDate(formData.startDate, parseInt(formData.subscriptionMonths) || 1);
   
-  // Calculate required amount (₹500 per month)
-  const MONTHLY_FEE = 500;
-  const requiredAmount = (parseInt(formData.subscriptionMonths) || 1) * MONTHLY_FEE;
+  // Calculate required amount with discounts (3 months: 10% off, 6 months: 15% off)
+  const subscriptionMonths = parseInt(formData.subscriptionMonths) || 1;
+  const subscriptionCalc = calculateSubscriptionAmount(subscriptionMonths);
+  const requiredAmount = subscriptionCalc.finalAmount;
   const paymentAmount = parseFloat(formData.paymentAmount) || 0;
   const remainingAmount = Math.max(0, requiredAmount - paymentAmount);
 
@@ -99,7 +101,7 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
       if (isNaN(payment) || payment < 0) {
         newErrors.paymentAmount = t.forms.invalidPayment;
       } else if (payment > requiredAmount) {
-        newErrors.paymentAmount = `Payment cannot exceed required amount of ₹${requiredAmount}`;
+        newErrors.paymentAmount = `Payment cannot exceed required amount of ₹${requiredAmount.toFixed(2)}`;
       }
     }
 
@@ -120,7 +122,8 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
       // Calculate isPaymentDone based on remaining amount
       const payment = parseFloat(formData.paymentAmount);
       const months = parseInt(formData.subscriptionMonths) || 1;
-      const requiredAmount = months * MONTHLY_FEE;
+      const calc = calculateSubscriptionAmount(months);
+      const requiredAmount = calc.finalAmount;
       const remainingAmount = Math.max(0, requiredAmount - payment);
       const isPaymentDone = remainingAmount === 0;
 
@@ -151,9 +154,14 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
       });
       setErrors({});
       
-      // Pass credentials if available
+      // Pass credentials if available, including phone number and student name
       const credentials = (newStudent as any).username && (newStudent as any).password
-        ? { username: (newStudent as any).username, password: (newStudent as any).password }
+        ? { 
+            username: (newStudent as any).username, 
+            password: (newStudent as any).password,
+            phoneNumber: formData.phoneNumber,
+            studentName: formData.name,
+          }
         : undefined;
       
       onSuccess(credentials);
@@ -424,11 +432,21 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Required Amount:</span>
-                  <span className="text-lg font-semibold text-blue-900">₹{requiredAmount}</span>
+                  <span className="text-lg font-semibold text-blue-900">₹{requiredAmount.toFixed(2)}</span>
                 </div>
                 <p className="text-xs text-gray-600 mt-1">
-                  ₹{MONTHLY_FEE} per month × {formData.subscriptionMonths} {parseInt(formData.subscriptionMonths) === 1 ? t.forms.month : t.forms.months}
+                  ₹{subscriptionCalc.monthlyFee} per month × {formData.subscriptionMonths} {parseInt(formData.subscriptionMonths) === 1 ? t.forms.month : t.forms.months}
+                  {subscriptionCalc.discountPercent > 0 && (
+                    <span className="text-green-600 font-semibold ml-1">
+                      ({subscriptionCalc.discountPercent}% discount applied: -₹{subscriptionCalc.discountAmount.toFixed(2)})
+                    </span>
+                  )}
                 </p>
+                {subscriptionCalc.baseAmount !== subscriptionCalc.finalAmount && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Base: ₹{subscriptionCalc.baseAmount.toFixed(2)} → Final: ₹{subscriptionCalc.finalAmount.toFixed(2)}
+                  </p>
+                )}
               </div>
 
               {/* Payment Amount field */}
@@ -440,18 +458,37 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
                   {t.students.paymentAmount} <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   id="paymentAmount"
                   name="paymentAmount"
                   value={formData.paymentAmount}
-                  onChange={handleChange}
-                  min="0"
-                  max={requiredAmount}
-                  step="0.01"
+                  onChange={(e) => {
+                    // Allow only numbers and decimal point
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Ensure only one decimal point
+                    const parts = value.split('.');
+                    const filteredValue = parts.length > 2 
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : value;
+                    // Limit to 2 decimal places
+                    const decimalParts = filteredValue.split('.');
+                    const finalValue = decimalParts.length === 2 && decimalParts[1].length > 2
+                      ? decimalParts[0] + '.' + decimalParts[1].substring(0, 2)
+                      : filteredValue;
+                    setFormData((prev) => ({ ...prev, paymentAmount: finalValue }));
+                    if (errors.paymentAmount) {
+                      setErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.paymentAmount;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.paymentAmount ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder={`Enter amount (max ₹${requiredAmount})`}
+                  placeholder={`Enter amount (max ₹${requiredAmount.toFixed(2)})`}
                 />
                 {errors.paymentAmount && (
                   <p className="mt-1 text-sm text-red-600">{errors.paymentAmount}</p>
@@ -471,7 +508,7 @@ export const AddStudentForm = ({ isOpen, onClose, onSuccess }: AddStudentFormPro
                     <span className="text-lg font-semibold text-yellow-900">₹{remainingAmount.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-1">
-                    Payment received: ₹{paymentAmount.toFixed(2)} | Required: ₹{requiredAmount} | Remaining: ₹{remainingAmount.toFixed(2)}
+                    Payment received: ₹{paymentAmount.toFixed(2)} | Required: ₹{requiredAmount.toFixed(2)} | Remaining: ₹{remainingAmount.toFixed(2)}
                   </p>
                 </div>
               )}

@@ -151,6 +151,34 @@ export const initializeDatabase = async () => {
       // Columns might already exist, ignore
     }
 
+    // Add last_login_date and password_expiry_date columns if they don't exist
+    try {
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS last_login_date TIMESTAMP;');
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS password_expiry_date TIMESTAMP;');
+    } catch (alterError) {
+      // Columns might already exist, ignore
+    }
+
+    // Add password_plaintext column to store password for retrieval
+    try {
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS password_plaintext VARCHAR(255);');
+    } catch (alterError) {
+      // Column might already exist, ignore
+    }
+
+    // Add required_amount column to store the required amount at time of payment (preserves discount history)
+    try {
+      await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS required_amount DECIMAL(10, 2);');
+      // Backfill existing records: calculate required_amount for students who don't have it
+      await pool.query(`
+        UPDATE students 
+        SET required_amount = payment_amount 
+        WHERE required_amount IS NULL AND payment_amount > 0
+      `);
+    } catch (alterError) {
+      // Column might already exist, ignore
+    }
+
     // Create student_notes table
     const createStudentNotesTable = `
       CREATE TABLE IF NOT EXISTS student_notes (
@@ -214,6 +242,7 @@ export const getAllStudents = async (studentId = null) => {
       query = `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
                start_date::text as "startDate", expiry_date::text as "expiryDate", 
                subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
+               required_amount as "requiredAmount",
                is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
                email, seat_number as "seatNumber"
                FROM students WHERE id = $1 ORDER BY created_at DESC`;
@@ -223,6 +252,7 @@ export const getAllStudents = async (studentId = null) => {
       query = `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
                start_date::text as "startDate", expiry_date::text as "expiryDate", 
                subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
+               required_amount as "requiredAmount",
                is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
                email, seat_number as "seatNumber"
                FROM students ORDER BY created_at DESC`;
@@ -244,6 +274,7 @@ export const getStudentById = async (id) => {
       `SELECT id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
+       required_amount as "requiredAmount",
        is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
        email, seat_number as "seatNumber"
        FROM students WHERE id = $1`,
@@ -259,16 +290,17 @@ export const getStudentById = async (id) => {
 // Create new student
 export const createStudent = async (studentData) => {
   try {
-    const { id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
+    const { id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, requiredAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
     const result = await pool.query(
-      `INSERT INTO students (id, name, phone_number, address, aadhar_card, start_date, expiry_date, subscription_months, payment_amount, is_payment_done, profile_picture, email, seat_number) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+      `INSERT INTO students (id, name, phone_number, address, aadhar_card, start_date, expiry_date, subscription_months, payment_amount, required_amount, is_payment_done, profile_picture, email, seat_number) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
        RETURNING id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
+       required_amount as "requiredAmount",
        is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
        email, seat_number as "seatNumber"`,
-      [id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths || 1, paymentAmount, isPaymentDone || false, profilePicture, email || null, seatNumber || null]
+      [id, name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths || 1, paymentAmount, requiredAmount || null, isPaymentDone || false, profilePicture, email || null, seatNumber || null]
     );
     return result.rows[0];
   } catch (error) {
@@ -280,7 +312,7 @@ export const createStudent = async (studentData) => {
 // Update student
 export const updateStudent = async (id, studentData) => {
   try {
-    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
+    const { name, phoneNumber, address, aadharCard, startDate, expiryDate, subscriptionMonths, paymentAmount, requiredAmount, isPaymentDone, profilePicture, email, seatNumber } = studentData;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -317,6 +349,10 @@ export const updateStudent = async (id, studentData) => {
       updates.push(`payment_amount = $${paramCount++}`);
       values.push(paymentAmount);
     }
+    if (requiredAmount !== undefined) {
+      updates.push(`required_amount = $${paramCount++}`);
+      values.push(requiredAmount);
+    }
     if (isPaymentDone !== undefined) {
       updates.push(`is_payment_done = $${paramCount++}`);
       values.push(isPaymentDone);
@@ -347,6 +383,7 @@ export const updateStudent = async (id, studentData) => {
        RETURNING id, name, phone_number as "phoneNumber", address, aadhar_card as "aadharCard", 
        start_date::text as "startDate", expiry_date::text as "expiryDate", 
        subscription_months as "subscriptionMonths", payment_amount as "paymentAmount", 
+       required_amount as "requiredAmount",
        is_payment_done as "isPaymentDone", profile_picture as "profilePicture",
        email, seat_number as "seatNumber"`,
       values
