@@ -224,6 +224,20 @@ export const initializeDatabase = async () => {
       // Index might already exist, ignore
     }
     
+    // Create current_affairs table for storing daily current affairs
+    const createCurrentAffairsTable = `
+      CREATE TABLE IF NOT EXISTS current_affairs (
+        id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        date DATE NOT NULL UNIQUE,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_current_affairs_date ON current_affairs(date);
+    `;
+
+    await pool.query(createCurrentAffairsTable);
+    
     console.log('✅ Database tables initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
